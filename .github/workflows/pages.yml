@@ -1,0 +1,61 @@
+name: Build & Deploy (Official GitHub Pages)
+
+on:
+  push:
+    branches: [ main ]   # or your default branch
+
+# Required permissions for the official Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one concurrent deploy to Pages at a time (recommended)
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Install & build your FRONTEND inside the client/ folder
+      - name: Install (client)
+        working-directory: client
+        run: npm ci
+
+      - name: Build (client)
+        working-directory: client
+        run: npm run build
+
+      # Configure Pages (collects metadata used by GitHub Pages)
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      # Upload the build output as the Pages artifact
+      # For React (CRA):   client/build
+      # For Vite:          client/dist
+      # For Angular:       client/dist/<project-name>
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: client/build    # <-- change to client/dist if you use Vite
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}    # will show the deployed URL
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
